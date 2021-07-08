@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style type="text/css">
+            * { user-select: none }
+            body {
+                background: #111 0px 0px / 16px url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2" fill="white" fill-opacity="0.0625"><rect width="1" height="1" /><rect x="1" y="1" width="1" height="1" /></svg>');
+                color: #ccc;
+                margin: 16px;
+            }
+        </style>
+        <script>
+            function configureCanvasDensity(canvas) {
+                const context = canvas.getContext("2d");
+                const ratio = window.devicePixelRatio ? window.devicePixelRatio : 1;
+                canvas.style.width = canvas.width + "px";
+                canvas.style.height = canvas.height + "px";
+                canvas.width = canvas.width * ratio;
+                canvas.height = canvas.height * ratio;
+                context.scale(ratio, ratio);
+            }
+
+            function drawUtil(canvas, drawFunction) {
+                configureCanvasDensity(canvas)
+                const w = canvas.width;
+                const h = canvas.height;
+                const d = 4;
+                const context = canvas.getContext("2d"); // CanvasRenderingContext2D
+                const pixels = new Uint8ClampedArray(w * h * d);
+                pixels.fill(0x00);
+                drawFunction(canvas, context, pixels, w, h, d);
+                const imageData = new ImageData(pixels, w, h);
+                context.putImageData(imageData, 0, 0);
+            }
+
+            // Converts hue, saturation, and value components into a 24-bit rgb value.
+            // Hue is expressed in degrees. Saturation and value should be in the range [0, 1].
+            // Based on HSV_To_RGB from Computer Graphics: Principles and Practice (Second Edition in C)
+            function hsv2rgb(h, s, v, resultRGB) {
+                // Make sure hue is in the range [0,360)
+                h = h % 360;
+                if (h < 0)
+                    h += 360;
+                h /= 60;
+
+                // Clamp saturation and value
+                s = (s < 0) ? 0 : ((s > 1) ? 1 : s);
+                v = (v < 0) ? 0 : ((v > 1) ? 1 : v);
+
+                var r, g, b;
+                if (s > 0) {
+                    var i = Math.floor(h);
+                    var f = h - i;
+                    var p = v * (1 - s);
+                    var q = v * (1 - (s * f));
+                    var t = v * (1 - (s * (1 - f)));
+
+                    switch(i) {
+                        case 6:
+                        case 0: r = v; g = t; b = p; break;
+                        case 1: r = q; g = v; b = p; break;
+                        case 2: r = p; g = v; b = t; break;
+                        case 3: r = p; g = q; b = v; break;
+                        case 4: r = t; g = p; b = v; break;
+                        case 5: r = v; g = p; b = q; break;
+                    }
+                }
+                else
+                    r = g = b = v;
+
+                resultRGB[0] = Math.round(r * 255);
+                resultRGB[1] = Math.round(g * 255);
+                resultRGB[2] = Math.round(b * 255);
+            }
+
+            // Draw an HSV color wheel in the given canvas and context with the provided radius.
+            // Color wheel will be centered in the canvas.
+            const RAD2DEG = 180 / Math.PI;
+            function drawHSVColorWheel(canvas) {
+                function drawHelper(canvas, context, pixels, w, h, d) {
+                    const hw = w / 2;
+                    const hh = h / 2;
+                    const radius = Math.min(hw, hh);
+
+                    var rgb = [0, 0, 0];
+                    const stride = w * d;
+
+                    const PIXEL_ALPHA_SCALE = 255 / Math.SQRT2;
+
+                    for (var j = 0; j < h; ++j) {
+                        var row = stride * j;
+                        for (var i = 0; i < w; ++i) {
+
+                            var x = i - hw;
+                            var y = hh - j;
+
+                            var theta = Math.atan2(y, x) * RAD2DEG;
+                            var dist = Math.sqrt(x * x + y * y);
+
+                            // Estimate coverage for this pixel
+                            var coverage = radius - dist - Math.SQRT1_2;
+                            var alpha = 0xff;
+                            if (coverage < 0)
+                                // If we're outside the radius, don't paint.
+                                continue;
+                            else if (coverage < Math.SQRT2)
+                                // Use coverage to calculate alpha
+                                alpha = coverage * PIXEL_ALPHA_SCALE;
+
+                            hsv2rgb(theta, dist / radius, 1, rgb);
+                            var pixel_offset = row + i * d;
+                            pixels[pixel_offset] = rgb[0];
+                            pixels[pixel_offset + 1] = rgb[1];
+                            pixels[pixel_offset + 2] = rgb[2];
+                            pixels[pixel_offset + 3] = alpha;
+                        }
+                    }
+                }
+                drawUtil(canvas, drawHelper);
+            }
+
+            // Takes canvas HTMLCanvasElement and opacity 0-255.
+            function drawColorPlane(canvas, opacity) {
+                if (opacity == undefined)
+                    opacity = 0xff;
+
+                function drawHelper(canvas, context, pixels, w, h, d) {
+                    pixels.fill(opacity);
+                    const stride = w * d;
+                    const wScale =  0xff / w;
+                    const hScale =  0xff / h;
+                    for (let y = 0; y < h; ++y) {
+                        const row = stride * y;
+                        for (let x = 0; x < w; ++x) {
+                            const pixel_offset = row + (x * d);
+                            pixels[pixel_offset] = (w - 1 - x) * wScale;
+                            pixels[pixel_offset + 1] = y * hScale;
+                            pixels[pixel_offset + 2] = x * wScale;
+                            pixels[pixel_offset + 3] = opacity;
+                        }
+                    }
+                }
+                drawUtil(canvas, drawHelper);
+            }
+
+            window.onload = () => {
+                drawHSVColorWheel(document.getElementById("c1"));
+                drawColorPlane(document.getElementById("c2"));
+                drawColorPlane(document.getElementById("c3"), 0x7f);
+            }
+        </script>
+    </head>
+    <body>
+        <canvas id="c1" width="256" height="256"></canvas> <canvas id="c2" width="256" height="256"></canvas> <canvas id="c3" width="128" height="128"></canvas>
+    </body>
+</html>
