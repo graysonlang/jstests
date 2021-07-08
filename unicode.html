@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            html, body {
+                color: #cccccc;
+                background-color: #111111;
+            }
+
+            pre {
+                font-size:12pt;
+            }
+        </style>
+    </head>
+    <script>
+        function trace() {
+            var elements = [];
+            for (var i = 0; i < trace.arguments.length; i++) elements.push(trace.arguments[i]);
+            var text = elements.join(" ") + "\n";
+            if (console && console.log)
+                console.log(text);
+            var pre = document.createElement("pre");
+            pre.innerHTML = text;
+            document.body.appendChild(pre);
+        }
+
+        function convertStringToUTF8ByteArray(string) {
+            var encoded = encodeURIComponent(string);
+            var result = [];
+            encoded.replace(
+                /(?:%([0-f]{2}))|(.)/gi,
+                function parse(_, h, c) {
+                    result.push(h ? parseInt(h, 16) : c.charCodeAt(0));
+                }
+            );
+            return result;
+        }
+
+        function convertUTF8ByteArrayToString(array) {
+            var result = [];
+            var len = array.length;
+            for (var i = 0; i < len; ++i) {
+                var v = array[i];
+                result[i] = (v > 127) ? "%" + v.toString(16) : String.fromCharCode(v);
+            }
+            return decodeURIComponent(result.join(""));
+        }
+
+        function convertUnicodeToSurrogates(u) {
+            if (u >= 0x10FFFF) // Highest defined Unicode code point
+                return [];
+
+            if (u < 0x10000)
+                return [u];
+
+            var hi = Math.floor((u - 0x10000) / 0x400) + 0xD800;
+            var lo = (u - 0x10000) % 0x400 + 0xDC00;
+            return [hi, lo];
+        }
+
+        function convertSurrogatesToUnicode(hi, lo) {
+            if (hi < 0xD800 || hi > 0xDBFF || lo < 0xDC00 || lo > 0xDFFF)
+                return NaN;
+            return 0x10000 + (hi - 0xd800) * 0x400 + (lo - 0xDC00);
+        }
+
+        window.onload = () => {
+            var string =
+                // Unicode codepoints < 4096 (represented in 2 bytes in UTF8)
+                "\u0426\u043b\u0457\u03c2\u03c3\u03b4\u03b5\n" +
+                "\u0446\u043b\u0457\u03c2\u03c3\u03b4\u03b5\n" +
+
+                // Unicode codepoints >= 4096 (represented in 3 bytes in UTF8)
+                "\u30d5\u30e0\u30e4\u30e0\u30ab\u30e2\u30b1\u30e2\n" +
+                "\uff8c\uff91\uff71\uff91\uff76\uff93\uff79\uff93\n" +
+
+                // (1) (2) (3) (4) (5)
+                "\u3280\u3281\u3282\u3283\u3284\n" +
+                "\u24ca\u24dd\u24d8\u24d2\u24de\u24d3\u24d4\n" +
+
+                // Trigrams
+                "\u2630\u2631\u2632\u2633\u2634\u2635\u2636\u2637\n" +
+                "\u2633\u2636\u2632\n" +
+
+                // Hexgrams
+                "\u4dd2\u4dd3\u4dfc\n" +
+
+                // Hexagons
+                "\u2b21\u2b22\n" +
+
+                // Surrogates of 4 byte Unicode codepoint
+                // 0x211D9 = 0xd844, 0xddd9
+                "\ud844\uddd9 (Cantonese for \"round and full\")\n" +
+                // 0x1D306 = 0xD834, 0xDF06
+                "\uD834\uDF06 (Tetragram for \"center\")";
+
+            var a = convertStringToUTF8ByteArray(string);
+            trace(convertUTF8ByteArrayToString(a));
+            trace("__________________________________________________\n");
+            trace(a);
+            trace("__________________________________________________\n");
+
+            var unicode = 0x211D9;
+
+            trace("Unicode:\t0x" + unicode.toString(16).toUpperCase());
+            var surrogates = convertUnicodeToSurrogates(unicode);
+            trace("Surrogates:\t" +
+                "0x" + surrogates[0].toString(16).toUpperCase(),
+                "0x" + surrogates[1].toString(16).toUpperCase()
+            );
+            trace("Character:\t" + String.fromCharCode(surrogates[0], surrogates[1]));
+            trace("Unicode:\t0x" + convertSurrogatesToUnicode(surrogates[0], surrogates[1]).toString(16).toUpperCase());
+        }
+        </script>
+    <body></body>
+</html>
