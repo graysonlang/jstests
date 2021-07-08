@@ -1,1 +1,13 @@
-theme: jekyll-theme-midnight
+title: JSTests
+description: JavaScript Test Cases
+show_downloads: false
+google_analytics:
+theme: jekyll-theme-primer
+# theme: jekyll-theme-midnight
+
+plugins:
+  - jekyll-avatar
+  - jekyll-feed
+  - jekyll-mentions
+  - jekyll-sitemap
+  - jemoji
