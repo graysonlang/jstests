@@ -1,1 +1,1 @@
-Repo for site: https://graysonlang.github.io/jstests/
+Repo for github pages: https://graysonlang.github.io/jstests/
