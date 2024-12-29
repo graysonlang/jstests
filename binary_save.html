@@ -1,43 +1,41 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            * {
-                cursor: default;
-                user-select: none;
-            }
-            html, body {
-                color: #ccc;
-                background-color: #111;
-            }
-        </style>
-        <script>
-            function saveAs(blob, name, opts) {
-                const a = document.createElement("a");
-                a.download = name || blob.name || "download";
-                a.rel = "noopener";
-                a.href = URL.createObjectURL(blob);
-                setTimeout(() => { a.dispatchEvent(new MouseEvent("click")) }, 0)
-                setTimeout(() => { URL.revokeObjectURL(a.href) }, 3000)
-            }
+  <head>
+    <meta charset="utf-8">
+    <style>
+      * {
+        cursor: default;
+        user-select: none;
+      }
+      html, body {
+        color: #ccc;
+        background-color: #111;
+      }
+    </style>
+    <script>
+      function saveAs(blob, name, opts) {
+        const a = document.createElement("a");
+        a.download = name || blob.name || "download";
+        a.rel = "noopener";
+        a.href = URL.createObjectURL(blob);
+        setTimeout(() => { a.dispatchEvent(new MouseEvent("click")) }, 0)
+        setTimeout(() => { URL.revokeObjectURL(a.href) }, 3000)
+      }
 
-            function submitEventListener(event) {
-                event.preventDefault();
-                const buffer = new ArrayBuffer(8); // allocates 8 bytes
-                const data = new DataView(buffer);
+      function submitEventListener(event) {
+        event.preventDefault();
+        const buffer = new ArrayBuffer(8); // allocates 8 bytes
+        const data = new DataView(buffer);
 
-                data.setUint8( 0, 0x01);
-                data.setUint16(1, 0x2345);
-                data.setUint32(3, 0x6789ABCD);
-                data.setUint8( 7, 0xEF);
+        data.setUint8( 0, 0x01);
+        data.setUint16(1, 0x2345);
+        data.setUint32(3, 0x6789ABCD);
+        data.setUint8( 7, 0xEF);
 
-                const blob = new Blob([buffer], { type: "application/octet-stream" }); // "image/jpeg"
-                saveAs(blob, "data.bin");
-            }
-        </script>
-    </head>
-    <body><form onsubmit="submitEventListener(event)"><input type="submit" value="Save"></form></body>
+        const blob = new Blob([buffer], { type: "application/octet-stream" }); // "image/jpeg"
+        saveAs(blob, "data.bin");
+      }
+    </script>
+  </head>
+  <body><form onsubmit="submitEventListener(event)"><input type="submit" value="Save"></form></body>
 </html>
-
-
